@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDFPro — Free Online PDF Tools</title>
+<meta name="description" content="Free online PDF tools — merge, split, compress, rotate, and convert PDF files instantly in your browser. No upload needed, 100% private.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root {
+    --red: #E23B3B;
+    --red-dark: #B02E2E;
+    --red-light: #FDEAEA;
+    --ink: #1A1A1A;
+    --gray: #6B6B6B;
+    --border: #E8E4E0;
+    --bg: #FAF9F7;
+    --white: #FFFFFF;
+    --success: #1D9E75;
+    --radius: 14px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.07);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; }
+
+  /* NAV */
+  nav {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px; position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--red); letter-spacing: -0.5px; }
+  .logo span { color: var(--ink); }
+  nav ul { list-style: none; display: flex; gap: 2rem; }
+  nav ul a { text-decoration: none; color: var(--gray); font-size: 0.9rem; font-weight: 500; transition: color 0.2s; }
+  nav ul a:hover { color: var(--red); }
+  .nav-cta { background: var(--red); color: var(--white) !important; padding: 0.5rem 1.2rem; border-radius: 8px; }
+  .nav-cta:hover { background: var(--red-dark); color: var(--white) !important; }
+
+  /* HERO */
+  .hero { text-align: center; padding: 5rem 2rem 3rem; }
+  .hero-badge { display: inline-block; background: var(--red-light); color: var(--red); font-size: 0.8rem; font-weight: 600; padding: 0.35rem 1rem; border-radius: 999px; margin-bottom: 1.5rem; letter-spacing: 0.5px; }
+  .hero h1 { font-family: 'Syne', sans-serif; font-size: clamp(2.4rem, 5vw, 3.8rem); font-weight: 800; line-height: 1.1; letter-spacing: -1.5px; margin-bottom: 1rem; }
+  .hero h1 em { color: var(--red); font-style: normal; }
+  .hero p { font-size: 1.1rem; color: var(--gray); max-width: 520px; margin: 0 auto 2rem; line-height: 1.7; }
+  .hero-stats { display: flex; justify-content: center; gap: 3rem; margin-top: 2rem; }
+  .stat { text-align: center; }
+  .stat strong { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 700; display: block; color: var(--ink); }
+  .stat span { font-size: 0.8rem; color: var(--gray); }
+
+  /* TOOLS GRID */
+  .tools-section { padding: 4rem 2rem; max-width: 1100px; margin: 0 auto; }
+  .section-label { font-size: 0.78rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--red); margin-bottom: 0.5rem; }
+  .section-title { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 700; margin-bottom: 2.5rem; letter-spacing: -0.5px; }
+  .tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.2rem; }
+  .tool-card {
+    background: var(--white); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 1.8rem 1.5rem; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
+  }
+  .tool-card:hover { border-color: var(--red); box-shadow: var(--shadow); transform: translateY(-2px); }
+  .tool-card:hover .tool-icon { background: var(--red); color: var(--white); }
+  .tool-icon {
+    width: 52px; height: 52px; border-radius: 12px; background: var(--red-light);
+    display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;
+    transition: all 0.2s; font-size: 1.6rem;
+  }
+  .tool-card h3 { font-family: 'Syne', sans-serif; font-size: 1.05rem; font-weight: 700; margin-bottom: 0.4rem; }
+  .tool-card p { font-size: 0.85rem; color: var(--gray); line-height: 1.5; }
+  .tool-badge { position: absolute; top: 1rem; right: 1rem; background: var(--red); color: var(--white); font-size: 0.65rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px; letter-spacing: 0.5px; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 200; align-items: center; justify-content: center; padding: 1rem;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--white); border-radius: 20px; width: 100%; max-width: 620px;
+    max-height: 90vh; overflow-y: auto; padding: 2.5rem;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.5rem; }
+  .modal-title { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; }
+  .modal-close { background: var(--bg); border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; color: var(--gray); flex-shrink: 0; }
+  .modal-close:hover { background: var(--border); }
+  .modal-desc { color: var(--gray); font-size: 0.95rem; margin-bottom: 1.5rem; line-height: 1.6; }
+
+  /* DROP ZONE */
+  .drop-zone {
+    border: 2px dashed var(--border); border-radius: var(--radius); padding: 3rem 2rem;
+    text-align: center; cursor: pointer; transition: all 0.2s; background: var(--bg);
+  }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--red); background: var(--red-light); }
+  .drop-zone .drop-icon { font-size: 3rem; margin-bottom: 1rem; }
+  .drop-zone h4 { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .drop-zone p { color: var(--gray); font-size: 0.85rem; }
+  .drop-zone input[type="file"] { display: none; }
+
+  /* FILE LIST */
+  .file-list { margin: 1.2rem 0; display: flex; flex-direction: column; gap: 0.6rem; }
+  .file-item {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: 0.75rem 1rem; display: flex; align-items: center; gap: 0.8rem;
+  }
+  .file-item .file-icon { font-size: 1.4rem; flex-shrink: 0; }
+  .file-item .file-info { flex: 1; min-width: 0; }
+  .file-item .file-name { font-weight: 500; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-item .file-size { font-size: 0.75rem; color: var(--gray); }
+  .file-item .file-remove { background: none; border: none; cursor: pointer; color: var(--gray); font-size: 1.1rem; padding: 4px; border-radius: 6px; }
+  .file-item .file-remove:hover { background: #fee; color: var(--red); }
+
+  /* OPTIONS */
+  .option-group { margin: 1.2rem 0; }
+  .option-label { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; display: block; }
+  .option-row { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+  .option-btn {
+    border: 1px solid var(--border); background: var(--white); padding: 0.45rem 1rem;
+    border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s; color: var(--ink);
+  }
+  .option-btn:hover { border-color: var(--red); color: var(--red); }
+  .option-btn.active { background: var(--red); color: var(--white); border-color: var(--red); }
+  .range-wrap { display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem; }
+  input[type=range] { flex: 1; accent-color: var(--red); }
+  .range-val { font-weight: 600; min-width: 40px; text-align: right; color: var(--red); }
+  input[type=number], input[type=text] {
+    border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 0.8rem;
+    font-size: 0.9rem; font-family: 'DM Sans', sans-serif; width: 100%; color: var(--ink);
+    background: var(--white);
+  }
+  input[type=number]:focus, input[type=text]:focus { outline: 2px solid var(--red); border-color: transparent; }
+
+  /* PROGRESS */
+  .progress-wrap { margin: 1rem 0; }
+  .progress-bar { height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--red); border-radius: 999px; transition: width 0.3s; }
+  .progress-text { font-size: 0.8rem; color: var(--gray); margin-top: 0.4rem; }
+
+  /* ACTION BUTTONS */
+  .btn-primary {
+    background: var(--red); color: var(--white); border: none; padding: 0.85rem 2rem;
+    border-radius: 10px; font-size: 1rem; font-weight: 600; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; width: 100%; transition: all 0.2s; margin-top: 1rem;
+  }
+  .btn-primary:hover { background: var(--red-dark); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary {
+    background: var(--bg); color: var(--ink); border: 1px solid var(--border); padding: 0.7rem 1.5rem;
+    border-radius: 10px; font-size: 0.9rem; font-weight: 500; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; transition: all 0.2s; margin-top: 0.6rem; width: 100%;
+  }
+  .btn-secondary:hover { border-color: var(--red); color: var(--red); }
+
+  /* RESULT */
+  .result-box { background: #EAF8F3; border: 1px solid #9FE1CB; border-radius: var(--radius); padding: 1.2rem 1.5rem; margin-top: 1rem; display: none; }
+  .result-box.show { display: block; }
+  .result-box h4 { color: var(--success); font-family: 'Syne', sans-serif; margin-bottom: 0.3rem; }
+  .result-box p { font-size: 0.85rem; color: #0F6E56; }
+  .error-box { background: var(--red-light); border: 1px solid #F09595; border-radius: var(--radius); padding: 1rem 1.5rem; margin-top: 1rem; display: none; }
+  .error-box.show { display: block; color: var(--red-dark); font-size: 0.9rem; }
+
+  /* HOW IT WORKS */
+  .how-section { background: var(--ink); color: var(--white); padding: 5rem 2rem; }
+  .how-inner { max-width: 900px; margin: 0 auto; text-align: center; }
+  .how-inner .section-label { color: var(--red); }
+  .how-inner .section-title { color: var(--white); }
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; margin-top: 3rem; }
+  .step { text-align: center; }
+  .step-num { width: 48px; height: 48px; background: var(--red); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; margin: 0 auto 1rem; }
+  .step h4 { font-family: 'Syne', sans-serif; font-weight: 700; margin-bottom: 0.5rem; }
+  .step p { font-size: 0.85rem; color: #999; line-height: 1.6; }
+
+  /* FEATURES */
+  .features-section { padding: 5rem 2rem; max-width: 1100px; margin: 0 auto; }
+  .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; }
+  .feature { display: flex; gap: 1rem; align-items: flex-start; }
+  .feature-icon { font-size: 1.5rem; flex-shrink: 0; margin-top: 2px; }
+  .feature h4 { font-family: 'Syne', sans-serif; font-weight: 700; margin-bottom: 0.3rem; font-size: 1rem; }
+  .feature p { font-size: 0.85rem; color: var(--gray); line-height: 1.5; }
+
+  /* FAQ */
+  .faq-section { background: var(--white); padding: 5rem 2rem; }
+  .faq-inner { max-width: 720px; margin: 0 auto; }
+  .faq-item { border-bottom: 1px solid var(--border); }
+  .faq-q { width: 100%; text-align: left; background: none; border: none; padding: 1.2rem 0; font-size: 1rem; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; display: flex; justify-content: space-between; align-items: center; color: var(--ink); }
+  .faq-q::after { content: '+'; font-size: 1.3rem; color: var(--red); flex-shrink: 0; }
+  .faq-q.open::after { content: '−'; }
+  .faq-a { display: none; padding: 0 0 1.2rem; color: var(--gray); font-size: 0.9rem; line-height: 1.7; }
+  .faq-a.open { display: block; }
+
+  /* FOOTER */
+  footer { background: var(--ink); color: #999; padding: 3rem 2rem; text-align: center; }
+  footer .logo { display: block; margin-bottom: 1rem; font-size: 1.3rem; }
+  footer p { font-size: 0.85rem; line-height: 1.8; }
+  footer a { color: #ccc; }
+
+  /* ADS PLACEHOLDER */
+  .ad-banner {
+    background: var(--white); border: 1px dashed var(--border); border-radius: var(--radius);
+    padding: 1.5rem; text-align: center; color: var(--gray); font-size: 0.8rem;
+    max-width: 1100px; margin: 1rem auto; letter-spacing: 1px; text-transform: uppercase;
+  }
+
+  @media (max-width: 600px) {
+    nav ul { display: none; }
+    .hero h1 { font-size: 2rem; }
+    .hero-stats { gap: 1.5rem; }
+    .modal { padding: 1.5rem; border-radius: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">PDF<span>Pro</span></div>
+  <ul>
+    <li><a href="#tools">Tools</a></li>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#faq">FAQ</a></li>
+    <li><a href="#tools" class="nav-cta">Get Started Free</a></li>
+  </ul>
+</nav>
+
+<!-- TOP AD -->
+<div class="ad-banner" id="ad-top">Advertisement — Google AdSense (728×90)</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">✦ 100% Free — No Registration Required</div>
+  <h1>All Your PDF Tools<br>In <em>One Place</em></h1>
+  <p>Merge, split, compress, rotate, and convert PDF files instantly in your browser. Your files never leave your device.</p>
+  <div class="hero-stats">
+    <div class="stat"><strong>6</strong><span>PDF Tools</span></div>
+    <div class="stat"><strong>Free</strong><span>Forever</span></div>
+    <div class="stat"><strong>100%</strong><span>Private</span></div>
+  </div>
+</section>
+
+<!-- TOOLS GRID -->
+<section class="tools-section" id="tools">
+  <div class="section-label">PDF Tools</div>
+  <div class="section-title">Choose a Tool to Get Started</div>
+  <div class="tools-grid">
+    <div class="tool-card" onclick="openTool('merge')">
+      <div class="tool-badge">POPULAR</div>
+      <div class="tool-icon">🔗</div>
+      <h3>Merge PDF</h3>
+      <p>Combine multiple PDF files into one document in any order.</p>
+    </div>
+    <div class="tool-card" onclick="openTool('split')">
+      <div class="tool-icon">✂️</div>
+      <h3>Split PDF</h3>
+      <p>Extract pages or split a PDF into multiple separate files.</p>
+    </div>
+    <div class="tool-card" onclick="openTool('compress')">
+      <div class="tool-icon">🗜️</div>
+      <h3>Compress PDF</h3>
+      <p>Reduce PDF file size while keeping the best possible quality.</p>
+    </div>
+    <div class="tool-card" onclick="openTool('rotate')">
+      <div class="tool-icon">🔄</div>
+      <h3>Rotate PDF</h3>
+      <p>Rotate all pages or specific pages of a PDF to the correct orientation.</p>
+    </div>
+    <div class="tool-card" onclick="openTool('watermark')">
+      <div class="tool-icon">💧</div>
+      <h3>Watermark PDF</h3>
+      <p>Add a custom text watermark to protect your PDF documents.</p>
+    </div>
+    <div class="tool-card" onclick="openTool('pagenumber')">
+      <div class="tool-icon">🔢</div>
+      <h3>Add Page Numbers</h3>
+      <p>Automatically add page numbers to your PDF in any position.</p>
+    </div>
+  </div>
+</section>
+
+<!-- AD MID -->
+<div class="ad-banner">Advertisement — Google AdSense (728×90)</div>
+
+<!-- HOW IT WORKS -->
+<section class="how-section" id="how">
+  <div class="how-inner">
+    <div class="section-label">Process</div>
+    <div class="section-title">How It Works</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h4>Upload Your File</h4>
+        <p>Drag & drop or click to select your PDF from your device. Works on all browsers.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h4>Choose Options</h4>
+        <p>Select your settings — pages, quality, rotation — whatever the tool needs.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h4>Download Result</h4>
+        <p>Click the action button, wait a moment, and download your ready PDF file.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features-section">
+  <div class="section-label">Why PDFPro</div>
+  <div class="section-title">Built for Everyone</div>
+  <div class="features-grid">
+    <div class="feature"><div class="feature-icon">🔒</div><div><h4>100% Private</h4><p>All processing happens in your browser. Your files are never uploaded to any server.</p></div></div>
+    <div class="feature"><div class="feature-icon">⚡</div><div><h4>Instant Processing</h4><p>No waiting, no queue. PDF operations complete in seconds right in your browser.</p></div></div>
+    <div class="feature"><div class="feature-icon">📱</div><div><h4>Works on Any Device</h4><p>Desktop, tablet, or phone — PDFPro is fully responsive and mobile-friendly.</p></div></div>
+    <div class="feature"><div class="feature-icon">💸</div><div><h4>Always Free</h4><p>No plans, no subscriptions, no watermarks on your output. Free forever.</p></div></div>
+    <div class="feature"><div class="feature-icon">🌐</div><div><h4>No Install Needed</h4><p>Runs entirely in your browser. No extensions, no apps, no downloads required.</p></div></div>
+    <div class="feature"><div class="feature-icon">✅</div><div><h4>Unlimited Files</h4><p>No file limits, no daily caps. Use PDFPro as much as you need, every day.</p></div></div>
+  </div>
+</section>
+
+<!-- AD BOTTOM -->
+<div class="ad-banner">Advertisement — Google AdSense (300×250)</div>
+
+<!-- FAQ -->
+<section class="faq-section" id="faq">
+  <div class="faq-inner">
+    <div class="section-label">FAQ</div>
+    <div class="section-title">Common Questions</div>
+    <div style="margin-top: 2rem;">
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Is PDFPro really free?</button>
+        <div class="faq-a">Yes, absolutely. All tools on PDFPro are free to use with no registration required. The site is supported by advertising.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Are my PDF files safe?</button>
+        <div class="faq-a">Your files never leave your device. All PDF processing is done entirely in your browser using JavaScript. We do not upload, store, or view your files at any point.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">What is the maximum file size?</button>
+        <div class="faq-a">Since files are processed in your browser, the limit depends on your device's memory. Most modern devices handle PDFs up to 100MB without any issues.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Will the output PDF have watermarks?</button>
+        <div class="faq-a">No. Output files are completely clean with no added watermarks, branding, or metadata from PDFPro.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Can I use PDFPro on my phone?</button>
+        <div class="faq-a">Yes. PDFPro is fully responsive and works on iOS, Android, tablets, and all modern browsers.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="logo">PDF<span style="color:#999">Pro</span></div>
+  <p>Free online PDF tools — merge, split, compress, rotate, watermark & more.<br>
+  All processing done in your browser. <a href="#">Privacy Policy</a> · <a href="#">Terms</a> · <a href="#">Contact</a><br><br>
+  © 2025 PDFPro. Made with ❤️ for everyone.</p>
+</footer>
+
+<!-- =================== MODALS =================== -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const { PDFDocument, degrees, rgb, StandardFonts } = PDFLib;
+
+let currentFiles = [];
+let currentTool = '';
+let activeOption = {};
+
+const tools = {
+  merge: {
+    title: '🔗 Merge PDF',
+    desc: 'Select two or more PDF files. They will be combined in the order shown. You can remove files before merging.',
+    multiple: true,
+    options: [],
+    btnText: 'Merge PDFs',
+    action: mergePDFs
+  },
+  split: {
+    title: '✂️ Split PDF',
+    desc: 'Upload a PDF and choose how to split it — extract specific pages or split into individual pages.',
+    multiple: false,
+    options: [
+      { key: 'mode', label: 'Split Mode', choices: ['All pages', 'Custom range'], def: 'All pages' },
+    ],
+    extraHTML: `<div id="split-range-wrap" style="display:none; margin-top:0.8rem">
+      <label class="option-label">Page range (e.g. 1-3, 5, 7-9)</label>
+      <input type="text" id="split-range" placeholder="1-3, 5, 7-9">
+    </div>`,
+    btnText: 'Split PDF',
+    action: splitPDF
+  },
+  compress: {
+    title: '🗜️ Compress PDF',
+    desc: 'Reduce the size of your PDF. Higher compression = smaller file but lower quality.',
+    multiple: false,
+    options: [
+      { key: 'quality', label: 'Compression Level', choices: ['Low (best quality)', 'Medium', 'High (smallest size)'], def: 'Medium' }
+    ],
+    btnText: 'Compress PDF',
+    action: compressPDF
+  },
+  rotate: {
+    title: '🔄 Rotate PDF',
+    desc: 'Rotate all pages or specific pages in your PDF document.',
+    multiple: false,
+    options: [
+      { key: 'angle', label: 'Rotation Angle', choices: ['90° Clockwise', '180°', '90° Counter-clockwise'], def: '90° Clockwise' },
+      { key: 'pages', label: 'Apply To', choices: ['All pages', 'Even pages', 'Odd pages'], def: 'All pages' }
+    ],
+    btnText: 'Rotate PDF',
+    action: rotatePDF
+  },
+  watermark: {
+    title: '💧 Watermark PDF',
+    desc: 'Add a diagonal text watermark to every page of your PDF.',
+    multiple: false,
+    options: [],
+    extraHTML: `
+      <div class="option-group">
+        <label class="option-label">Watermark Text</label>
+        <input type="text" id="wm-text" placeholder="e.g. CONFIDENTIAL" value="CONFIDENTIAL">
+      </div>
+      <div class="option-group">
+        <label class="option-label">Opacity</label>
+        <div class="range-wrap">
+          <span>0%</span>
+          <input type="range" min="5" max="80" value="30" id="wm-opacity" oninput="document.getElementById('wm-opacity-val').textContent=this.value+'%'">
+          <span class="range-val" id="wm-opacity-val">30%</span>
+        </div>
+      </div>`,
+    btnText: 'Add Watermark',
+    action: addWatermark
+  },
+  pagenumber: {
+    title: '🔢 Add Page Numbers',
+    desc: 'Automatically add page numbers to every page of your PDF.',
+    multiple: false,
+    options: [
+      { key: 'position', label: 'Position', choices: ['Bottom Center', 'Bottom Right', 'Bottom Left', 'Top Center'], def: 'Bottom Center' },
+      { key: 'style', label: 'Style', choices: ['1, 2, 3...', 'Page 1 of N', '- 1 -'], def: '1, 2, 3...' }
+    ],
+    btnText: 'Add Page Numbers',
+    action: addPageNumbers
+  }
+};
+
+function openTool(toolId) {
+  currentTool = toolId;
+  currentFiles = [];
+  activeOption = {};
+  const t = tools[toolId];
+  t.options.forEach(o => activeOption[o.key] = o.def);
+  renderModal(t);
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function renderModal(t) {
+  let optHTML = '';
+  t.options.forEach(o => {
+    optHTML += `<div class="option-group">
+      <label class="option-label">${o.label}</label>
+      <div class="option-row">
+        ${o.choices.map(c => `<button class="option-btn ${c===o.def?'active':''}" onclick="setOpt('${o.key}','${c}',this)">${c}</button>`).join('')}
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('modal-content').innerHTML = `
+    <div class="modal-header">
+      <div class="modal-title">${t.title}</div>
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    </div>
+    <p class="modal-desc">${t.desc}</p>
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()"
+      ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+      <div class="drop-icon">📄</div>
+      <h4>Drag & drop your PDF${t.multiple?'s':''} here</h4>
+      <p>or click to browse from your computer</p>
+      <input type="file" id="file-input" accept=".pdf" ${t.multiple?'multiple':''} onchange="handleFiles(event)">
+    </div>
+    <div class="file-list" id="file-list"></div>
+    ${optHTML}
+    ${t.extraHTML || ''}
+    <div class="progress-wrap" id="progress-wrap" style="display:none">
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      <div class="progress-text" id="progress-text">Processing...</div>
+    </div>
+    <div class="result-box" id="result-box">
+      <h4>✅ Done!</h4>
+      <p id="result-msg">Your file is ready.</p>
+    </div>
+    <div class="error-box" id="error-box"></div>
+    <button class="btn-primary" id="action-btn" onclick="runAction()" disabled>${t.btnText}</button>
+    <button class="btn-secondary" onclick="closeModalDirect()">Cancel</button>
+  `;
+
+  if (currentTool === 'split') {
+    document.querySelectorAll('.option-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const rangeWrap = document.getElementById('split-range-wrap');
+        if (rangeWrap) rangeWrap.style.display = this.textContent.includes('Custom') ? 'block' : 'none';
+      });
+    });
+  }
+}
+
+function setOpt(key, val, btn) {
+  activeOption[key] = val;
+  btn.closest('.option-row').querySelectorAll('.option-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function closeModal(e) { if (e.target === document.getElementById('modal-overlay')) closeModalDirect(); }
+function closeModalDirect() { document.getElementById('modal-overlay').classList.remove('open'); }
+
+function handleDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+function handleDragLeave() { document.getElementById('drop-zone').classList.remove('drag-over'); }
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf');
+  addFiles(files);
+}
+function handleFiles(e) { addFiles(Array.from(e.target.files)); }
+
+function addFiles(files) {
+  const t = tools[currentTool];
+  if (!t.multiple) currentFiles = [files[0]];
+  else currentFiles = [...currentFiles, ...files];
+  renderFileList();
+}
+
+function renderFileList() {
+  const list = document.getElementById('file-list');
+  list.innerHTML = currentFiles.map((f, i) => `
+    <div class="file-item">
+      <span class="file-icon">📄</span>
+      <div class="file-info">
+        <div class="file-name">${f.name}</div>
+        <div class="file-size">${formatSize(f.size)}</div>
+      </div>
+      <button class="file-remove" onclick="removeFile(${i})">✕</button>
+    </div>
+  `).join('');
+  document.getElementById('action-btn').disabled = currentFiles.length === 0;
+  document.getElementById('result-box').classList.remove('show');
+  document.getElementById('error-box').classList.remove('show');
+}
+
+function removeFile(i) { currentFiles.splice(i, 1); renderFileList(); }
+function formatSize(b) { if (b < 1024) return b + ' B'; if (b < 1048576) return (b/1024).toFixed(1) + ' KB'; return (b/1048576).toFixed(2) + ' MB'; }
+
+function setProgress(pct, text) {
+  document.getElementById('progress-wrap').style.display = 'block';
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = text;
+}
+
+function showResult(msg, bytes) {
+  document.getElementById('progress-wrap').style.display = 'none';
+  const box = document.getElementById('result-box');
+  box.classList.add('show');
+  document.getElementById('result-msg').textContent = msg + (bytes ? ` (${formatSize(bytes)})` : '');
+}
+
+function showError(msg) {
+  document.getElementById('progress-wrap').style.display = 'none';
+  const box = document.getElementById('error-box');
+  box.classList.add('show');
+  box.textContent = '❌ Error: ' + msg;
+}
+
+function download(bytes, filename) {
+  const blob = new Blob([bytes], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+function runAction() { tools[currentTool].action(); }
+
+/* ===== MERGE ===== */
+async function mergePDFs() {
+  if (currentFiles.length < 2) { showError('Please add at least 2 PDF files to merge.'); return; }
+  try {
+    setProgress(10, 'Loading files...');
+    const merged = await PDFDocument.create();
+    for (let i = 0; i < currentFiles.length; i++) {
+      setProgress(10 + (i / currentFiles.length) * 80, `Merging file ${i+1} of ${currentFiles.length}...`);
+      const buf = await currentFiles[i].arrayBuffer();
+      const doc = await PDFDocument.load(buf);
+      const pages = await merged.copyPages(doc, doc.getPageIndices());
+      pages.forEach(p => merged.addPage(p));
+    }
+    setProgress(95, 'Saving...');
+    const bytes = await merged.save();
+    download(bytes, 'merged.pdf');
+    showResult(`Merged ${currentFiles.length} files successfully.`, bytes.length);
+  } catch(e) { showError(e.message); }
+}
+
+/* ===== SPLIT ===== */
+async function splitPDF() {
+  if (!currentFiles[0]) { showError('Please upload a PDF file.'); return; }
+  try {
+    setProgress(10, 'Loading file...');
+    const buf = await currentFiles[0].arrayBuffer();
+    const src = await PDFDocument.load(buf);
+    const total = src.getPageCount();
+    const mode = activeOption.mode;
+    let pageNums = [];
+
+    if (mode === 'All pages') {
+      pageNums = Array.from({length: total}, (_, i) => i);
+    } else {
+      const rangeStr = document.getElementById('split-range')?.value || '';
+      pageNums = parsePageRange(rangeStr, total);
+      if (!pageNums.length) { showError('Invalid page range. Use format: 1-3, 5, 7-9'); return; }
+    }
+
+    setProgress(30, 'Splitting pages...');
+    if (mode === 'All pages') {
+      for (let i = 0; i < pageNums.length; i++) {
+        setProgress(30 + (i / pageNums.length) * 60, `Exporting page ${i+1} of ${total}...`);
+        const doc = await PDFDocument.create();
+        const [page] = await doc.copyPages(src, [pageNums[i]]);
+        doc.addPage(page);
+        const bytes = await doc.save();
+        download(bytes, `page_${i+1}.pdf`);
+      }
+      showResult(`Split into ${pageNums.length} files and downloaded.`);
+    } else {
+      const doc = await PDFDocument.create();
+      const pages = await doc.copyPages(src, pageNums);
+      pages.forEach(p => doc.addPage(p));
+      const bytes = await doc.save();
+      download(bytes, 'split.pdf');
+      showResult(`Extracted ${pageNums.length} page(s) successfully.`, bytes.length);
+    }
+  } catch(e) { showError(e.message); }
+}
+
+function parsePageRange(str, total) {
+  const nums = new Set();
+  str.split(',').forEach(part => {
+    part = part.trim();
+    if (part.includes('-')) {
+      const [a, b] = part.split('-').map(Number);
+      for (let i = a; i <= b; i++) if (i >= 1 && i <= total) nums.add(i - 1);
+    } else {
+      const n = parseInt(part);
+      if (n >= 1 && n <= total) nums.add(n - 1);
+    }
+  });
+  return Array.from(nums).sort((a,b) => a - b);
+}
+
+/* ===== COMPRESS ===== */
+async function compressPDF() {
+  if (!currentFiles[0]) { showError('Please upload a PDF file.'); return; }
+  try {
+    setProgress(20, 'Loading file...');
+    const buf = await currentFiles[0].arrayBuffer();
+    const doc = await PDFDocument.load(buf);
+    setProgress(60, 'Compressing...');
+    const lvl = activeOption.quality;
+    const opts = { useObjectStreams: true, addDefaultPage: false, objectsPerTick: lvl === 'High (smallest size)' ? 50 : lvl === 'Medium' ? 100 : 200 };
+    const bytes = await doc.save(opts);
+    setProgress(95, 'Saving...');
+    download(bytes, 'compressed.pdf');
+    const orig = currentFiles[0].size;
+    const saved = Math.max(0, orig - bytes.length);
+    const pct = orig > 0 ? Math.round(saved / orig * 100) : 0;
+    showResult(`Compressed: ${formatSize(orig)} → ${formatSize(bytes.length)} (saved ${pct}%)`, bytes.length);
+  } catch(e) { showError(e.message); }
+}
+
+/* ===== ROTATE ===== */
+async function rotatePDF() {
+  if (!currentFiles[0]) { showError('Please upload a PDF file.'); return; }
+  try {
+    setProgress(20, 'Loading file...');
+    const buf = await currentFiles[0].arrayBuffer();
+    const doc = await PDFDocument.load(buf);
+    const angleMap = {'90° Clockwise': 90, '180°': 180, '90° Counter-clockwise': 270};
+    const angle = angleMap[activeOption.angle] || 90;
+    const applyTo = activeOption.pages;
+    const pages = doc.getPages();
+    pages.forEach((p, i) => {
+      const apply = applyTo === 'All pages' || (applyTo === 'Even pages' && (i+1)%2===0) || (applyTo === 'Odd pages' && (i+1)%2!==0);
+      if (apply) p.setRotation(degrees((p.getRotation().angle + angle) % 360));
+    });
+    setProgress(80, 'Saving...');
+    const bytes = await doc.save();
+    download(bytes, 'rotated.pdf');
+    showResult(`Rotated ${pages.length} pages by ${activeOption.angle}.`, bytes.length);
+  } catch(e) { showError(e.message); }
+}
+
+/* ===== WATERMARK ===== */
+async function addWatermark() {
+  if (!currentFiles[0]) { showError('Please upload a PDF file.'); return; }
+  const text = document.getElementById('wm-text').value.trim() || 'WATERMARK';
+  const opacity = parseInt(document.getElementById('wm-opacity').value) / 100;
+  try {
+    setProgress(20, 'Loading file...');
+    const buf = await currentFiles[0].arrayBuffer();
+    const doc = await PDFDocument.load(buf);
+    const font = await doc.embedFont(StandardFonts.HelveticaBold);
+    const pages = doc.getPages();
+    pages.forEach(page => {
+      const { width, height } = page.getSize();
+      const fontSize = Math.min(width, height) * 0.12;
+      const tw = font.widthOfTextAtSize(text, fontSize);
+      page.drawText(text, {
+        x: (width - tw) / 2,
+        y: (height - fontSize) / 2,
+        size: fontSize,
+        font,
+        color: rgb(0.8, 0.1, 0.1),
+        opacity,
+        rotate: degrees(45),
+      });
+    });
+    setProgress(85, 'Saving...');
+    const bytes = await doc.save();
+    download(bytes, 'watermarked.pdf');
+    showResult(`Watermark added to ${pages.length} pages.`, bytes.length);
+  } catch(e) { showError(e.message); }
+}
+
+/* ===== PAGE NUMBERS ===== */
+async function addPageNumbers() {
+  if (!currentFiles[0]) { showError('Please upload a PDF file.'); return; }
+  try {
+    setProgress(20, 'Loading file...');
+    const buf = await currentFiles[0].arrayBuffer();
+    const doc = await PDFDocument.load(buf);
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    const pages = doc.getPages();
+    const total = pages.length;
+    const pos = activeOption.position;
+    const style = activeOption.style;
+    pages.forEach((page, i) => {
+      const { width, height } = page.getSize();
+      const num = i + 1;
+      let label = style === '1, 2, 3...' ? String(num) : style === 'Page 1 of N' ? `Page ${num} of ${total}` : `- ${num} -`;
+      const fontSize = 11;
+      const tw = font.widthOfTextAtSize(label, fontSize);
+      let x, y;
+      if (pos === 'Bottom Center') { x = (width - tw) / 2; y = 24; }
+      else if (pos === 'Bottom Right') { x = width - tw - 30; y = 24; }
+      else if (pos === 'Bottom Left') { x = 30; y = 24; }
+      else { x = (width - tw) / 2; y = height - 36; }
+      page.drawText(label, { x, y, size: fontSize, font, color: rgb(0.3, 0.3, 0.3) });
+    });
+    setProgress(85, 'Saving...');
+    const bytes = await doc.save();
+    download(bytes, 'numbered.pdf');
+    showResult(`Page numbers added to ${total} pages.`, bytes.length);
+  } catch(e) { showError(e.message); }
+}
+
+/* ===== FAQ ===== */
+function toggleFaq(btn) {
+  const isOpen = btn.classList.contains('open');
+  document.querySelectorAll('.faq-q').forEach(b => { b.classList.remove('open'); b.nextElementSibling.classList.remove('open'); });
+  if (!isOpen) { btn.classList.add('open'); btn.nextElementSibling.classList.add('open'); }
+}
+
+/* Scroll smooth */
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const el = document.querySelector(a.getAttribute('href'));
+    if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth' }); }
+  });
+});
+</script>
+</body>
+</html>
